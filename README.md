@@ -21,8 +21,7 @@ An AI-powered Resume Analyzer built using the MERN stack that helps users analyz
 - Job Match History
 - Delete Resume & Job Match
 - User-wise Data Isolation
-- Responsive UI
-- Premium Dark UI
+- Responsive Ui
 
 ## Tech Stack
 
