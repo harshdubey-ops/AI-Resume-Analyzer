@@ -1,46 +1,77 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  EmptyState,
+  Modal,
+  ProgressBar,
+  SkillBadge,
+  Spinner,
+} from "../components/ui";
+import { IconSpark } from "../components/icons";
 
 function JobMatchHistory() {
   const [matches, setMatches] = useState([]);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5000/job-matches", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setMatches(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching job matches:", error);
-      });
-  }, []);
-
-  const deleteMatch = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this job match?"
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      const response = await fetch(
-        `http://localhost:5000/job-matches/${id}`,
-        {
-          method: "DELETE",
+    const loadMatches = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/job-matches", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.message || "Unable to load job match history.");
+          return;
         }
-      );
+
+        setMatches(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching job matches:", err);
+        setError("Unable to load job match history.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMatches();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMatch) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setSelectedMatch(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedMatch]);
+
+  const deleteMatch = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/job-matches/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to delete");
+        setError(data.message || "Failed to delete");
         return;
       }
 
@@ -49,286 +80,193 @@ function JobMatchHistory() {
       if (selectedMatch?._id === id) {
         setSelectedMatch(null);
       }
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert("Failed to delete job match");
+    } catch (err) {
+      console.error("Delete error:", err);
+      setError("Failed to delete job match");
+    } finally {
+      setPendingDelete(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
-      
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 text-lg font-bold shadow-lg shadow-purple-500/20">
-              AI
-            </div>
+    <div className="relative min-h-screen overflow-x-hidden bg-[#05070d] text-slate-100">
+      <Navbar />
 
-            <div>
-              <h1 className="font-bold tracking-wide">
-                Resume<span className="text-cyan-400">AI</span>
-              </h1>
-              <p className="text-xs text-gray-500">
-                Job Match History
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => (window.location.href = "/job-match")}
-            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium transition hover:bg-white/10"
-          >
-            ← New Job Match
-          </button>
-        </div>
-      </nav>
-
-      {/* Main */}
-      <main className="mx-auto max-w-7xl px-6 py-12">
-        
-        <div className="mb-10">
-          <div className="mb-3 inline-flex rounded-full border border-purple-400/20 bg-purple-400/10 px-4 py-1.5 text-xs font-medium text-purple-300">
-            YOUR ANALYSIS HISTORY
-          </div>
-
-          <h2 className="text-4xl font-bold tracking-tight">
-            Job Match <span className="text-cyan-400">History</span>
-          </h2>
-
-          <p className="mt-3 max-w-2xl text-gray-400">
-            Review your previous resume-to-job comparisons and track your
-            matching skills, missing skills and AI recommendations.
-          </p>
-        </div>
-
-        {/* Empty State */}
-        {matches.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] px-6 py-20 text-center backdrop-blur-xl">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/20 to-purple-500/20 text-2xl">
-              ✦
-            </div>
-
-            <h3 className="text-xl font-semibold">
-              No job matches yet
-            </h3>
-
-            <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
-              Analyze your resume against a job description to see your
-              results here.
+      <main id="main" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Badge tone="violet">Your analysis history</Badge>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Job match history
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-400 sm:text-base">
+              Review previous resume-to-job comparisons, matching skills, missing skills and recommendations.
             </p>
-
-            <button
-              onClick={() => (window.location.href = "/job-match")}
-              className="mt-6 rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 px-6 py-3 font-semibold text-black"
-            >
-              Analyze a Job
-            </button>
           </div>
+          <Button variant="secondary" onClick={() => navigate("/job-match")}>
+            New job match
+          </Button>
+        </div>
+
+        {error && (loading || matches.length > 0) && (
+          <div className="mb-6">
+            <Alert>{error}</Alert>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-slate-400">
+            <Spinner className="h-6 w-6" />
+            <span className="ml-3 text-sm">Loading matches...</span>
+          </div>
+        ) : error && matches.length === 0 ? (
+          <EmptyState
+            icon={<IconSpark />}
+            title="Unable to load job match history"
+            description={error}
+            action={
+              <Button variant="secondary" onClick={() => navigate(0)}>
+                Try again
+              </Button>
+            }
+          />
+        ) : matches.length === 0 ? (
+          <EmptyState
+            icon={<IconSpark />}
+            title="No job matches yet"
+            description="Analyze your resume against a job description to see your results here."
+            action={<Button onClick={() => navigate("/job-match")}>Analyze a job</Button>}
+          />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => (
-              <div
+              <Card
                 key={match._id}
-                className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-white/[0.06]"
+                className="p-5 transition duration-200 hover:-translate-y-0.5 hover:border-white/15"
               >
-                {/* Glow */}
-                <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl" />
-
-                <div className="relative">
-                  {/* Header */}
-                  <div className="mb-5 flex items-start justify-between">
-                    <div className="min-w-0">
-                      <p className="mb-1 text-xs uppercase tracking-wider text-gray-500">
-                        Resume
-                      </p>
-
-                      <h3 className="truncate font-semibold text-gray-200">
-                        {match.resumeFileName}
-                      </h3>
-                    </div>
-
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/20 to-purple-500/20">
-                      <span className="text-xl font-bold text-cyan-300">
-                        {match.matchScore}%
-                      </span>
-                    </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs uppercase tracking-wider text-slate-500">Resume used</p>
+                    <h2 className="mt-1 truncate font-semibold text-white">{match.resumeFileName}</h2>
                   </div>
-
-                  {/* Score */}
-                  <div className="mb-5">
-                    <div className="mb-2 flex justify-between text-xs">
-                      <span className="text-gray-500">
-                        Job Compatibility
-                      </span>
-                      <span className="text-gray-300">
-                        {match.matchScore}/100
-                      </span>
-                    </div>
-
-                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-purple-500"
-                        style={{
-                          width: `${match.matchScore}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Skills */}
-                  <div className="mb-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-emerald-400/10 bg-emerald-400/5 p-3">
-                      <p className="text-xs text-gray-500">
-                        Matching
-                      </p>
-                      <p className="mt-1 text-lg font-bold text-emerald-300">
-                        {match.matchingSkills?.length || 0}
-                      </p>
-                    </div>
-
-                    <div className="rounded-2xl border border-red-400/10 bg-red-400/5 p-3">
-                      <p className="text-xs text-gray-500">
-                        Missing
-                      </p>
-                      <p className="mt-1 text-lg font-bold text-red-300">
-                        {match.missingSkills?.length || 0}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Date */}
-                  <p className="mb-5 text-xs text-gray-600">
-                    {match.createdAt
-                      ? new Date(match.createdAt).toLocaleDateString()
-                      : "Recent analysis"}
-                  </p>
-
-                  {/* Buttons */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setSelectedMatch(match)}
-                      className="flex-1 rounded-xl border border-white/10 bg-white/5 py-2.5 text-sm font-medium transition hover:bg-white/10"
-                    >
-                      View Details
-                    </button>
-
-                    <button
-                      onClick={() => deleteMatch(match._id)}
-                      className="rounded-xl border border-red-400/20 bg-red-400/5 px-4 py-2.5 text-sm text-red-300 transition hover:bg-red-400/10"
-                    >
-                      Delete
-                    </button>
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-sky-300">
+                    {match.matchScore}%
                   </div>
                 </div>
-              </div>
+
+                <div className="mt-5">
+                  <div className="mb-2 flex justify-between text-xs text-slate-400">
+                    <span>Job match score</span>
+                    <span>{match.matchScore}/100</span>
+                  </div>
+                  <ProgressBar value={match.matchScore} />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-emerald-400/15 bg-emerald-400/5 p-3">
+                    <p className="text-[11px] text-slate-500">Matching skills</p>
+                    <p className="mt-1 text-lg font-semibold text-emerald-300">
+                      {match.matchingSkills?.length || 0}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-rose-400/15 bg-rose-400/5 p-3">
+                    <p className="text-[11px] text-slate-500">Missing skills</p>
+                    <p className="mt-1 text-lg font-semibold text-rose-300">
+                      {match.missingSkills?.length || 0}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs text-slate-500">
+                  {match.createdAt
+                    ? new Date(match.createdAt).toLocaleDateString()
+                    : "Recent analysis"}
+                </p>
+
+                <div className="mt-4 flex gap-2">
+                  <Button variant="secondary" className="flex-1" onClick={() => setSelectedMatch(match)}>
+                    View details
+                  </Button>
+                  <Button variant="danger" onClick={() => setPendingDelete(match)}>
+                    Delete
+                  </Button>
+                </div>
+              </Card>
             ))}
           </div>
         )}
       </main>
 
-      {/* Details Modal */}
       {selectedMatch && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#0b1020] p-7 shadow-2xl">
-            
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wider text-cyan-400">
-                  Job Match Details
-                </p>
+        <Modal
+          subtitle="Job match details"
+          title={selectedMatch.resumeFileName}
+          onClose={() => setSelectedMatch(null)}
+        >
+          <div className="rounded-xl border border-sky-400/15 bg-sky-400/5 p-5">
+            <p className="text-sm text-slate-400">Match score</p>
+            <p className="mt-1 text-4xl font-semibold text-sky-300">{selectedMatch.matchScore}%</p>
+            <ProgressBar value={selectedMatch.matchScore} className="mt-3" />
+          </div>
 
-                <h2 className="mt-1 text-2xl font-bold">
-                  {selectedMatch.resumeFileName}
-                </h2>
-              </div>
-
-              <button
-                onClick={() => setSelectedMatch(null)}
-                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-gray-400 hover:bg-white/10"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Score */}
-            <div className="mb-6 rounded-2xl border border-cyan-400/10 bg-cyan-400/5 p-5">
-              <p className="text-sm text-gray-400">
-                Match Score
-              </p>
-
-              <div className="mt-2 text-5xl font-bold text-cyan-300">
-                {selectedMatch.matchScore}%
-              </div>
-            </div>
-
-            {/* Matching Skills */}
-            <div className="mb-6">
-              <h3 className="mb-3 font-semibold text-emerald-300">
-                Matching Skills
-              </h3>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedMatch.matchingSkills?.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-sm text-emerald-300"
-                  >
+          <div className="mt-6">
+            <h3 className="mb-3 font-semibold text-emerald-300">Matching skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedMatch.matchingSkills?.length ? (
+                selectedMatch.matchingSkills.map((skill, index) => (
+                  <SkillBadge key={index} tone="emerald">
                     {skill}
-                  </span>
-                ))}
-              </div>
+                  </SkillBadge>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">None listed.</p>
+              )}
             </div>
+          </div>
 
-            {/* Missing Skills */}
-            <div className="mb-6">
-              <h3 className="mb-3 font-semibold text-red-300">
-                Missing Skills
-              </h3>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedMatch.missingSkills?.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="rounded-full border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-sm text-red-300"
-                  >
+          <div className="mt-6">
+            <h3 className="mb-3 font-semibold text-rose-300">Missing skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {selectedMatch.missingSkills?.length ? (
+                selectedMatch.missingSkills.map((skill, index) => (
+                  <SkillBadge key={index} tone="rose">
                     {skill}
-                  </span>
-                ))}
-              </div>
+                  </SkillBadge>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">None listed.</p>
+              )}
             </div>
+          </div>
 
-            {/* Recommendations */}
-            <div>
-              <h3 className="mb-3 font-semibold text-purple-300">
-                AI Recommendations
-              </h3>
-
-              <div className="space-y-3">
-                {selectedMatch.recommendations?.map((item, index) => (
+          <div className="mt-6">
+            <h3 className="mb-3 font-semibold text-violet-300">AI recommendations</h3>
+            <div className="space-y-3">
+              {selectedMatch.recommendations?.length ? (
+                selectedMatch.recommendations.map((item, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-6 text-gray-300"
+                    className="rounded-xl border border-white/8 bg-white/[0.03] p-4 text-sm leading-6 text-slate-300"
                   >
-                    <span className="mr-2 text-purple-400">
-                      {index + 1}.
-                    </span>
+                    <span className="mr-2 text-violet-300">{index + 1}.</span>
                     {item}
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No recommendations available.</p>
+              )}
             </div>
-
-            <button
-              onClick={() => setSelectedMatch(null)}
-              className="mt-7 w-full rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 py-3 font-semibold text-black"
-            >
-              Close
-            </button>
           </div>
-        </div>
+        </Modal>
+      )}
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete this job match?"
+          description={`This will remove the match for “${pendingDelete.resumeFileName}” from your history.`}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => deleteMatch(pendingDelete._id)}
+        />
       )}
     </div>
   );

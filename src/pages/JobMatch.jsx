@@ -1,38 +1,67 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Field,
+  ScoreRing,
+  SectionHeader,
+  Select,
+  SkillBadge,
+  Spinner,
+  Textarea,
+} from "../components/ui";
 
 function JobMatch() {
   const [jobDescription, setJobDescription] = useState("");
   const [resumes, setResumes] = useState([]);
+  const [resumeLoading, setResumeLoading] = useState(true);
   const [selectedResume, setSelectedResume] = useState("");
   const [matchResult, setMatchResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:5000/resumes", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setResumes(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching resumes:", error);
-      });
+    const loadResumes = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/resumes", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.message || "Unable to load resumes.");
+          return;
+        }
+
+        setResumes(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching resumes:", err);
+        setError("Unable to load resumes.");
+      } finally {
+        setResumeLoading(false);
+      }
+    };
+
+    loadResumes();
   }, []);
 
   const handleAnalyze = async () => {
+    setError("");
+
     if (!selectedResume) {
-      alert("Please select a resume first");
+      setError("Please select a resume first");
       return;
     }
 
     if (!jobDescription.trim()) {
-      alert("Please enter a job description first");
+      setError("Please enter a job description first");
       return;
     }
 
@@ -55,7 +84,7 @@ function JobMatch() {
 
       if (!response.ok) {
         setLoading(false);
-        alert(data.message || "Something went wrong");
+        setError(data.message || "Something went wrong");
         return;
       }
 
@@ -63,459 +92,219 @@ function JobMatch() {
       setLoading(false);
 
       console.log("Job Match Response:", data);
-    } catch (error) {
-      console.error("Job match error:", error);
+    } catch (err) {
+      console.error("Job match error:", err);
       setLoading(false);
-      alert("Failed to analyze job match. Please try again.");
+      setError("Failed to analyze job match. Please try again.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
-
-      {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#050816]/90 backdrop-blur-xl">
-
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-
-          <div
-            onClick={() => navigate("/")}
-            className="flex cursor-pointer items-center gap-3"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 font-bold shadow-lg shadow-blue-500/20">
-              AI
-            </div>
-
-            <div>
-              <p className="font-bold">
-                AI Resume Analyzer
-              </p>
-
-              <p className="text-xs text-slate-500">
-                Resume Intelligence Platform
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-
-            <button
-              onClick={() => navigate("/history")}
-              className="hidden rounded-lg px-4 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-white md:block"
-            >
-              Resume History
-            </button>
-
-            <button
-              onClick={() => navigate("/job-match-history")}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
-            >
-              Match History
-            </button>
-
-          </div>
-
-        </div>
-
-      </nav>
-
-      {/* BACKGROUND GLOW */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-
-        <div className="absolute left-[-150px] top-[-150px] h-[450px] w-[450px] rounded-full bg-blue-600/10 blur-[130px]" />
-
-        <div className="absolute right-[-150px] top-[350px] h-[500px] w-[500px] rounded-full bg-purple-600/10 blur-[150px]" />
-
+    <div className="relative min-h-screen overflow-x-hidden bg-[#05070d] text-slate-100">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute left-[-150px] top-[-150px] h-[450px] w-[450px] rounded-full bg-sky-600/10 blur-[130px]" />
+        <div className="absolute right-[-150px] top-[350px] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[150px]" />
       </div>
 
-      {/* MAIN */}
-      <main className="relative z-10 mx-auto max-w-5xl px-6 py-14">
+      <div className="relative z-10">
+        <Navbar />
 
-        {/* HEADER */}
-        <div className="text-center">
-
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-4 py-2 text-sm text-purple-400">
-            <span>✦</span>
-            STEP 3 OF 3
-          </div>
-
-          <h1 className="text-4xl font-black tracking-tight md:text-5xl">
-            Match Your{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              Resume
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-2xl text-slate-400">
-            Paste a job description and let AI compare it with
-            your resume to identify your strengths and skill gaps.
-          </p>
-
-        </div>
-
-        {/* MAIN CARD */}
-        <div className="relative mt-12 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 shadow-2xl backdrop-blur-xl md:p-8">
-
-          <div className="absolute right-[-100px] top-[-100px] h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
-
-          {/* SELECT RESUME */}
-          <div className="relative">
-
-            <div className="flex items-center gap-3">
-
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-xl">
-                📄
-              </div>
-
-              <div>
-                <h2 className="font-bold">
-                  Select Resume
-                </h2>
-
-                <p className="text-sm text-slate-500">
-                  Choose the resume you want to match.
-                </p>
-              </div>
-
-            </div>
-
-            <select
-              value={selectedResume}
-              onChange={(e) => setSelectedResume(e.target.value)}
-              className="mt-5 w-full rounded-xl border border-white/10 bg-[#080d20] p-4 text-sm text-slate-300 outline-none transition focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10"
-            >
-              <option value="">
-                Select a resume
-              </option>
-
-              {resumes.map((resume) => (
-                <option key={resume._id} value={resume._id}>
-                  {resume.fileName}
-                </option>
-              ))}
-            </select>
-
-          </div>
-
-          {/* JOB DESCRIPTION */}
-          <div className="relative mt-9">
-
-            <div className="flex items-center justify-between">
-
-              <div className="flex items-center gap-3">
-
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-500/10 text-xl">
-                  💼
-                </div>
-
-                <div>
-                  <h2 className="font-bold">
-                    Job Description
-                  </h2>
-
-                  <p className="text-sm text-slate-500">
-                    Paste the job description you want to apply for.
-                  </p>
-                </div>
-
-              </div>
-
-              <span className="text-xs text-slate-500">
-                {jobDescription.length} characters
-              </span>
-
-            </div>
-
-            <textarea
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              placeholder="Example: We are looking for a Java Backend Developer with experience in Spring Boot, REST APIs, SQL, MongoDB..."
-              className="mt-5 h-64 w-full resize-none rounded-2xl border border-white/10 bg-[#080d20] p-5 text-sm leading-6 text-slate-300 outline-none transition placeholder:text-slate-600 focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/10"
-            />
-
-            <p className="mt-3 text-xs text-slate-500">
-              Include responsibilities, required skills and qualifications.
+        <main id="main" className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
+          <div className="text-center">
+            <Badge tone="violet">Step 3 of 3</Badge>
+            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Match your resume
+            </h1>
+            <p className="mx-auto mt-3 max-w-2xl text-sm text-slate-400 sm:text-base">
+              Paste a job description and compare it with a saved resume to see matching skills and gaps.
             </p>
-
           </div>
 
-          {/* ANALYZE BUTTON */}
-          <button
-            onClick={handleAnalyze}
-            disabled={loading}
-            className="relative mt-7 w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-4 font-bold shadow-lg shadow-blue-600/20 transition hover:scale-[1.01] hover:from-blue-500 hover:to-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loading
-              ? "Analyzing Job Match..."
-              : "Analyze Job Match →"}
-          </button>
-
-          {/* HISTORY */}
-          <button
-            onClick={() => navigate("/job-match-history")}
-            className="relative mt-3 w-full rounded-xl border border-white/10 bg-white/5 py-3 font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            View Job Match History
-          </button>
-
-        </div>
-
-        {/* MATCH RESULT */}
-        {matchResult && (
-          <div className="mt-10 space-y-6">
-
-            {/* SCORE */}
-            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-7 backdrop-blur-xl">
-
-              <div className="flex items-center justify-between">
-
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-                    AI Analysis
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-bold">
-                    Resume Match Score
-                  </h2>
-                </div>
-
-                <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-400">
-                  AI Match
-                </span>
-
+          <Card className="mt-10 p-5 sm:p-7">
+            {error && (
+              <div className="mb-5">
+                <Alert>{error}</Alert>
               </div>
+            )}
 
-              <div className="mt-8 flex flex-col items-center gap-7 md:flex-row">
+            <Field id="resume" label="Select resume">
+              <Select
+                id="resume"
+                value={selectedResume}
+                onChange={(e) => setSelectedResume(e.target.value)}
+                disabled={resumeLoading || resumes.length === 0}
+              >
+                <option value="">
+                  {resumeLoading
+                    ? "Loading resumes..."
+                    : error
+                    ? "Unable to load resumes"
+                    : resumes.length
+                    ? "Select a resume"
+                    : "No resumes available"}
+                </option>
+                {resumes.map((resume) => (
+                  <option key={resume._id} value={resume._id}>
+                    {resume.fileName}
+                  </option>
+                ))}
+              </Select>
+              {!resumeLoading && !error && resumes.length === 0 && (
+                <p className="mt-2 text-sm text-slate-400">
+                  Upload a resume before matching it to a job.{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-sky-300 underline decoration-sky-300/40 underline-offset-4 hover:text-sky-200"
+                    onClick={() => navigate("/upload")}
+                  >
+                    Upload resume
+                  </button>
+                </p>
+              )}
+            </Field>
 
-                <div
-                  className="flex h-32 w-32 items-center justify-center rounded-full"
-                  style={{
-                    background: `conic-gradient(#3b82f6 ${
-                      matchResult.matchScore * 3.6
-                    }deg, #1e293b 0deg)`,
-                  }}
-                >
-                  <div className="flex h-27 w-27 items-center justify-center rounded-full bg-[#080d20]">
+            <div className="mt-6">
+              <div className="mb-2 flex items-end justify-between gap-3">
+                <label htmlFor="jobDescription" className="text-sm font-medium text-slate-200">
+                  Job description
+                </label>
+                <span className="text-xs text-slate-500">{jobDescription.length} characters</span>
+              </div>
+              <Textarea
+                id="jobDescription"
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Example: We are looking for a Java Backend Developer with experience in Spring Boot, REST APIs, SQL, MongoDB..."
+                className="h-56 sm:h-64"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                Include responsibilities, required skills and qualifications.
+              </p>
+            </div>
 
-                    <span className="text-3xl font-black text-blue-400">
-                      {matchResult.matchScore}%
-                    </span>
+            <Button className="mt-6 h-12 w-full" onClick={handleAnalyze} disabled={loading}>
+              {loading ? (
+                <>
+                  <Spinner />
+                  Analyzing job match...
+                </>
+              ) : (
+                "Analyze job match"
+              )}
+            </Button>
 
+            <Button
+              variant="secondary"
+              className="mt-3 h-11 w-full"
+              onClick={() => navigate("/job-match-history")}
+            >
+              View job match history
+            </Button>
+          </Card>
+
+          {matchResult && (
+            <div className="mt-8 space-y-4 animate-slide-up">
+              <Card className="p-6 sm:p-7">
+                <SectionHeader
+                  eyebrow="AI analysis"
+                  title="Resume match score"
+                  action={<Badge>AI match</Badge>}
+                />
+                <div className="mt-7 flex flex-col items-center gap-6 sm:flex-row">
+                  <ScoreRing
+                    score={matchResult.matchScore}
+                    size={128}
+                    label={`Match score ${matchResult.matchScore} percent`}
+                  />
+                  <div className="text-center sm:text-left">
+                    <p className="text-xl font-semibold text-white">
+                      {matchResult.matchScore}% match
+                    </p>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-400">
+                      Based on the skills and requirements found in your resume and the provided job description.
+                    </p>
                   </div>
                 </div>
+              </Card>
 
-                <div className="text-center md:text-left">
-
-                  <p className="text-xl font-bold">
-                    Resume Match
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="p-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                    Matching skills
                   </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">Matching skills</h2>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {matchResult.matchingSkills?.length > 0 ? (
+                      matchResult.matchingSkills.map((skill, index) => (
+                        <SkillBadge key={index} tone="emerald">
+                          {skill}
+                        </SkillBadge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-slate-500">No matching skills found.</p>
+                    )}
+                  </div>
+                </Card>
 
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Based on the skills and requirements found
-                    in your resume and the provided job description.
+                <Card className="p-6">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-rose-300">
+                    Missing skills
                   </p>
-
-                </div>
-
+                  <h2 className="mt-2 text-xl font-semibold text-white">Missing skills</h2>
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {matchResult.missingSkills?.length > 0 ? (
+                      matchResult.missingSkills.map((skill, index) => (
+                        <SkillBadge key={index} tone="rose">
+                          {skill}
+                        </SkillBadge>
+                      ))
+                    ) : (
+                      <p className="text-sm text-emerald-300">No major skill gaps found.</p>
+                    )}
+                  </div>
+                </Card>
               </div>
 
-            </section>
-
-            {/* MATCHING + MISSING */}
-            <div className="grid gap-6 md:grid-cols-2">
-
-              {/* MATCHING */}
-              <section className="rounded-3xl border border-emerald-500/10 bg-white/[0.04] p-7">
-
-                <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
-                  Strong Match
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold">
-                  Matching Skills
-                </h2>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-
-                  {matchResult.matchingSkills?.length > 0 ? (
-                    matchResult.matchingSkills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-300"
-                      >
-                        ✓ {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-sm text-slate-500">
-                      No matching skills found.
-                    </p>
-                  )}
-
-                </div>
-
-              </section>
-
-              {/* MISSING */}
-              <section className="rounded-3xl border border-red-500/10 bg-white/[0.04] p-7">
-
-                <p className="text-xs font-semibold uppercase tracking-widest text-red-400">
-                  Skill Gap
-                </p>
-
-                <h2 className="mt-2 text-2xl font-bold">
-                  Missing Skills
-                </h2>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-
-                  {matchResult.missingSkills?.length > 0 ? (
-                    matchResult.missingSkills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300"
-                      >
-                        + {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-sm text-emerald-400">
-                      ✓ No major skill gaps found.
-                    </p>
-                  )}
-
-                </div>
-
-              </section>
-
-            </div>
-
-            {/* RECOMMENDATIONS */}
-            <section className="rounded-3xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.08] to-blue-500/[0.05] p-7">
-
-              <div className="flex items-center gap-4">
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 font-bold shadow-lg shadow-blue-500/20">
-                  AI
-                </div>
-
-                <div>
-
-                  <p className="text-xs font-semibold uppercase tracking-widest text-purple-400">
-                    AI Recommendations
-                  </p>
-
-                  <h2 className="mt-1 text-2xl font-bold">
-                    How to Improve Your Match
-                  </h2>
-
-                </div>
-
-              </div>
-
-              <div className="mt-7 space-y-3">
-
-                {matchResult.recommendations?.length > 0 ? (
-                  matchResult.recommendations.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex gap-4 rounded-2xl border border-white/10 bg-black/20 p-4"
-                    >
-
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-sm font-bold text-purple-400">
-                        {index + 1}
+              <Card className="p-6 sm:p-7">
+                <SectionHeader eyebrow="AI recommendations" title="How to improve your match" />
+                <div className="mt-6 space-y-3">
+                  {matchResult.recommendations?.length > 0 ? (
+                    matchResult.recommendations.map((item, index) => (
+                      <div key={index} className="flex gap-3 rounded-xl border border-white/8 bg-[#080d18] p-4">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-500/10 text-xs font-semibold text-violet-300">
+                          {index + 1}
+                        </span>
+                        <p className="text-sm leading-6 text-slate-300">{item}</p>
                       </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">No recommendations available.</p>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
 
-                      <p className="text-sm leading-6 text-slate-300">
-                        {item}
-                      </p>
-
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">
-                    No recommendations available.
-                  </p>
-                )}
-
-              </div>
-
-            </section>
-
-          </div>
-        )}
-
-        {/* FEATURES */}
-        <section className="mt-16">
-
-          <div className="text-center">
-
-            <p className="text-sm font-semibold tracking-widest text-blue-400">
-              AI JOB ANALYSIS
+          <section className="mt-14">
+            <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">
+              AI job analysis
             </p>
-
-            <h2 className="mt-2 text-3xl font-black">
-              What We'll Analyze
-            </h2>
-
-          </div>
-
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-blue-500/30 hover:bg-white/[0.06]">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-2xl">
-                🎯
-              </div>
-
-              <h3 className="mt-5 font-bold">
-                Match Score
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                See how closely your resume matches the job.
-              </p>
-
+            <h2 className="mt-2 text-center text-2xl font-semibold text-white">What we&apos;ll analyze</h2>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              {[
+                { title: "Match score", body: "See how closely your resume matches the job." },
+                { title: "Matching skills", body: "Identify skills that overlap with the requirements." },
+                { title: "Skill gaps", body: "Find skills you may need to improve or learn." },
+              ].map((item) => (
+                <Card key={item.title} className="p-5">
+                  <h3 className="font-semibold text-white">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+                </Card>
+              ))}
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-emerald-500/30 hover:bg-white/[0.06]">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-2xl">
-                ⚡
-              </div>
-
-              <h3 className="mt-5 font-bold">
-                Matching Skills
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Identify skills that match the job requirements.
-              </p>
-
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-red-500/30 hover:bg-white/[0.06]">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10 text-2xl">
-                📈
-              </div>
-
-              <h3 className="mt-5 font-bold">
-                Skill Gaps
-              </h3>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                Find skills you may need to improve or learn.
-              </p>
-
-            </div>
-
-          </div>
-
-        </section>
-
-      </main>
-
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

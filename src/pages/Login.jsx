@@ -1,18 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import { Alert, Button, Card, Field, Input, Spinner } from "../components/ui";
+import { IconEye, IconEyeOff, IconLock } from "../components/icons";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (!email || !password) {
-      alert("Please enter email and password");
+      setError("Please enter email and password");
       return;
     }
 
@@ -33,7 +38,7 @@ function Login() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Login failed");
+        setError(data.message || "Login failed");
         setLoading(false);
         return;
       }
@@ -42,131 +47,104 @@ function Login() {
       localStorage.setItem("token", data.token);
 
       navigate("/");
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("Unable to connect to server");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Unable to connect to server");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050816] text-white">
-
-      {/* Background Glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute left-1/4 top-10 h-72 w-72 rounded-full bg-cyan-500/10 blur-[120px]" />
-        <div className="absolute bottom-10 right-1/4 h-72 w-72 rounded-full bg-purple-600/10 blur-[120px]" />
+    <div className="relative min-h-screen overflow-x-hidden bg-[#05070d] text-slate-100">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute left-1/4 top-8 h-72 w-72 rounded-full bg-sky-500/10 blur-[120px]" />
+        <div className="absolute bottom-8 right-1/4 h-72 w-72 rounded-full bg-indigo-500/10 blur-[120px]" />
       </div>
 
-      {/* Navbar */}
-      <nav className="relative z-10 border-b border-white/10 bg-[#050816]/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center px-6 py-4">
-          <button
-            onClick={() => navigate("/")}
-            className="flex items-center gap-3"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 font-bold shadow-lg shadow-purple-500/20">
-              AI
+      <div className="relative z-10">
+        <Navbar variant="minimal" />
+
+        <main id="main" className="mx-auto flex min-h-[calc(100vh-64px)] max-w-md items-center px-4 py-12 sm:px-6">
+          <div className="w-full animate-slide-up">
+            <div className="mb-7 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-400">
+                Welcome back
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Sign in</h1>
+              <p className="mt-2 text-sm text-slate-400">
+                Continue analyzing and matching your resume.
+              </p>
             </div>
 
-            <h1 className="font-bold">
-              Resume<span className="text-cyan-400">AI</span>
-            </h1>
-          </button>
-        </div>
-      </nav>
+            <Card className="p-6 sm:p-7">
+              <form onSubmit={handleLogin} className="space-y-4">
+                {error && <Alert>{error}</Alert>}
 
-      {/* Login */}
-      <main className="relative z-10 flex min-h-[calc(100vh-73px)] items-center justify-center px-6 py-12">
+                <Field id="email" label="Email address">
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </Field>
 
-        <div className="w-full max-w-md">
+                <Field id="password" label="Password">
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pr-12"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:text-white"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <IconEyeOff className="h-4 w-4" /> : <IconEye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </Field>
 
-          {/* Heading */}
-          <div className="mb-8 text-center">
-            <div className="mb-4 inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1.5 text-xs font-medium text-cyan-300">
-              WELCOME BACK
-            </div>
+                <Button type="submit" className="h-11 w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Spinner />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign in"
+                  )}
+                </Button>
+              </form>
 
-            <h2 className="text-4xl font-bold tracking-tight">
-              Login to <span className="text-cyan-400">ResumeAI</span>
-            </h2>
+              <div className="mt-6 border-t border-white/10 pt-5 text-center text-sm text-slate-400">
+                Don&apos;t have an account?{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-sky-300 hover:text-sky-200"
+                  onClick={() => navigate("/signup")}
+                >
+                  Create an account
+                </button>
+              </div>
+            </Card>
 
-            <p className="mt-3 text-sm text-gray-500">
-              Continue analyzing and improving your resume.
+            <p className="mt-5 flex items-center justify-center gap-2 text-xs text-slate-500">
+              <IconLock className="h-3.5 w-3.5" />
+              Your account data is securely protected
             </p>
           </div>
-
-          {/* Card */}
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-7 shadow-2xl backdrop-blur-xl">
-
-            <form onSubmit={handleLogin} className="space-y-5">
-
-              {/* Email */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Email Address
-                </label>
-
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none placeholder:text-gray-600 transition focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/10"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-300">
-                  Password
-                </label>
-
-                <input
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-white outline-none placeholder:text-gray-600 transition focus:border-purple-400/50 focus:ring-2 focus:ring-purple-400/10"
-                />
-              </div>
-
-              {/* Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-gradient-to-r from-cyan-400 to-purple-500 py-3.5 font-semibold text-black shadow-lg shadow-purple-500/10 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? "Signing In..." : "Sign In →"}
-              </button>
-
-            </form>
-
-            {/* Signup */}
-            <div className="mt-7 border-t border-white/10 pt-6 text-center">
-              <p className="text-sm text-gray-500">
-                Don't have an account?
-              </p>
-
-              <button
-                onClick={() => navigate("/signup")}
-                className="mt-2 font-medium text-cyan-400 transition hover:text-cyan-300"
-              >
-                Create an account →
-              </button>
-            </div>
-
-          </div>
-
-          {/* Security */}
-          <div className="mt-5 flex items-center justify-center gap-2 text-xs text-gray-600">
-            <span>🔒</span>
-            Your account data is securely protected
-          </div>
-
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
