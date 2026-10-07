@@ -1,19 +1,87 @@
-# React + Vite
+# AI Resume Analyzer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered Resume Analyzer built using the MERN stack that helps users analyze their resumes, evaluate ATS compatibility, identify skill gaps, and match resumes with job descriptions.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- User Signup & Login
+- JWT-based Authentication
+- Protected Routes
+- Resume Upload
+- AI-powered Resume Analysis
+- ATS Score
+- Skills Detection
+- Strengths & Weaknesses Analysis
+- Missing Skills Detection
+- AI Recommendations
+- Job Description Matching
+- Job Match Score
+- Matching & Missing Skills
+- Resume History
+- Job Match History
+- Delete Resume & Job Match
+- User-wise Data Isolation
+- Responsive UI
+- Premium Dark UI
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+### Frontend
+- React.js
+- Vite
+- Tailwind CSS
+- React Router
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+### Backend
+- Node.js
+- Express.js
+- JWT Authentication
+- Multer
+- PDF Parse
+- Mammoth
 
-## Expanding the ESLint configuration
+### Database
+- MongoDB
+- Mongoose
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### AI
+- Google Gemini API
+
+## Project Structure
+
+```text
+AI-RESUME/
+│
+├── public/
+├── src/
+│   ├── assets/
+│   ├── pages/
+│   │   ├── Analysis.jsx
+│   │   ├── JobMatch.jsx
+│   │   ├── JobMatchHistory.jsx
+│   │   ├── Login.jsx
+│   │   ├── ResumeHistory.jsx
+│   │   ├── Signup.jsx
+│   │   └── UploadResume.jsx
+│   │
+│   ├── App.jsx
+│   ├── ProtectedRoute.jsx
+│   ├── App.css
+│   ├── index.css
+│   └── main.jsx
+│
+├── server/
+│   ├── models/
+│   │   ├── JobMatch.js
+│   │   ├── Resume.js
+│   │   └── Users.js
+│   │
+│   ├── authMiddleware.js
+│   ├── server.js
+│   ├── package.json
+│   └── package-lock.json
+│
+├── .gitignore
+├── package.json
+├── package-lock.json
+└── vite.config.js
