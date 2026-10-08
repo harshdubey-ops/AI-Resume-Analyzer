@@ -53,6 +53,13 @@ function Navbar({ variant = "full" }) {
       >
         Job Matches
       </button>
+      <button
+        type="button"
+        className={linkClass("/resume-builder")}
+        onClick={() => navigate("/resume-builder")}
+      >
+        Resume Builder
+      </button>
     </>
   );
 

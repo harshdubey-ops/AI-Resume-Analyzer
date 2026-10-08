@@ -6,6 +6,8 @@ const mongoose = require("mongoose");
 
 const Resume = require("./models/Resume");
 const JobMatch = require("./models/JobMatch");
+const ResumeProfile = require("./models/ResumeProfile");
+const ResumeVersion = require("./models/ResumeVersion");
 const User = require("./models/Users");
 
 const bcrypt = require("bcryptjs");
@@ -564,6 +566,226 @@ ${jobDescription}`,
 // ==========================================
 // GET SAVED RESUMES
 // ==========================================
+
+const resumeVersionFields = [
+  "template",
+  "fullName",
+  "headline",
+  "email",
+  "phone",
+  "location",
+  "linkedin",
+  "website",
+  "summary",
+  "skills",
+  "experience",
+  "education",
+  "projects",
+];
+
+function readResumeVersionFields(body) {
+  const fields = {};
+  for (const field of resumeVersionFields) {
+    if (body[field] !== undefined) {
+      if (typeof body[field] !== "string") {
+        return { error: `${field} must be text` };
+      }
+      fields[field] = body[field].trim();
+    }
+  }
+  if (fields.template && !["modern", "classic"].includes(fields.template)) {
+    return { error: "Please choose a valid resume template" };
+  }
+  return { fields };
+}
+
+app.get("/resume-versions", authMiddleware, async (req, res) => {
+  try {
+    let versions = await ResumeVersion.find({ userId: req.user.userId })
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    if (versions.length === 0) {
+      const legacyProfile = await ResumeProfile.findOne({ userId: req.user.userId }).lean();
+      if (legacyProfile) {
+        let migratedVersion = await ResumeVersion.findOne({
+          legacyProfileId: legacyProfile._id,
+        }).lean();
+
+        if (!migratedVersion) {
+          try {
+            migratedVersion = await ResumeVersion.create({
+              ...Object.fromEntries(
+                resumeVersionFields
+                  .filter((field) => legacyProfile[field] !== undefined)
+                  .map((field) => [field, legacyProfile[field]])
+              ),
+              userId: req.user.userId,
+              legacyProfileId: legacyProfile._id,
+              name: legacyProfile.headline || "My Resume",
+            });
+          } catch (error) {
+            if (error.code !== 11000) throw error;
+            migratedVersion = await ResumeVersion.findOne({
+              legacyProfileId: legacyProfile._id,
+            });
+          }
+        }
+
+        if (migratedVersion) {
+          await ResumeProfile.deleteOne({ _id: legacyProfile._id, userId: req.user.userId });
+        }
+        versions = await ResumeVersion.find({ userId: req.user.userId })
+          .sort({ updatedAt: -1 })
+          .lean();
+      }
+    }
+
+    res.json({ versions });
+  } catch (error) {
+    console.error("Error fetching resume versions:", error);
+    res.status(500).json({ message: "Failed to fetch resume versions" });
+  }
+});
+
+app.post("/resume-versions", authMiddleware, async (req, res) => {
+  try {
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+    if (!name) {
+      return res.status(400).json({ message: "A name is required for this resume version" });
+    }
+    if (name.length > 80) {
+      return res.status(400).json({ message: "Resume version names must be 80 characters or fewer" });
+    }
+
+    const { fields, error } = readResumeVersionFields(req.body);
+    if (error) return res.status(400).json({ message: error });
+
+    const version = await ResumeVersion.create({
+      ...fields,
+      userId: req.user.userId,
+      name,
+    });
+    res.status(201).json({ message: "Resume version created successfully", version });
+  } catch (error) {
+    console.error("Error creating resume version:", error);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Please check your resume details and try again." });
+    }
+    res.status(500).json({ message: "Failed to create resume version" });
+  }
+});
+
+app.put("/resume-versions/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: "Resume version not found" });
+    }
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+    if (!name) {
+      return res.status(400).json({ message: "A name is required for this resume version" });
+    }
+    if (name.length > 80) {
+      return res.status(400).json({ message: "Resume version names must be 80 characters or fewer" });
+    }
+
+    const { fields, error } = readResumeVersionFields(req.body);
+    if (error) return res.status(400).json({ message: error });
+
+    const version = await ResumeVersion.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.userId },
+      { $set: { ...fields, name } },
+      { new: true, runValidators: true }
+    ).lean();
+    if (!version) {
+      return res.status(404).json({ message: "Resume version not found" });
+    }
+    res.json({ message: "Resume version saved successfully", version });
+  } catch (error) {
+    console.error("Error saving resume version:", error);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Please check your resume details and try again." });
+    }
+    res.status(500).json({ message: "Failed to save resume version" });
+  }
+});
+
+app.delete("/resume-versions/:id", authMiddleware, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: "Resume version not found" });
+    }
+    const version = await ResumeVersion.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user.userId,
+    });
+    if (!version) {
+      return res.status(404).json({ message: "Resume version not found" });
+    }
+    res.json({ message: "Resume version deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting resume version:", error);
+    res.status(500).json({ message: "Failed to delete resume version" });
+  }
+});
+
+app.get("/resume-builder", authMiddleware, async (req, res) => {
+  try {
+    const resume = await ResumeProfile.findOne({ userId: req.user.userId }).lean();
+    res.json({ resume });
+  } catch (error) {
+    console.error("Error fetching resume builder draft:", error);
+    res.status(500).json({ message: "Failed to fetch resume builder draft" });
+  }
+});
+
+app.put("/resume-builder", authMiddleware, async (req, res) => {
+  try {
+    const allowedFields = [
+      "template",
+      "fullName",
+      "headline",
+      "email",
+      "phone",
+      "location",
+      "linkedin",
+      "website",
+      "summary",
+      "skills",
+      "experience",
+      "education",
+      "projects",
+    ];
+    const profile = {};
+
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        if (typeof req.body[field] !== "string") {
+          return res.status(400).json({ message: `${field} must be text` });
+        }
+        profile[field] = req.body[field].trim();
+      }
+    }
+
+    if (!profile.fullName) {
+      return res.status(400).json({ message: "Full name is required" });
+    }
+
+    const resume = await ResumeProfile.findOneAndUpdate(
+      { userId: req.user.userId },
+      { $set: profile, $setOnInsert: { userId: req.user.userId } },
+      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    res.json({ message: "Resume draft saved successfully", resume });
+  } catch (error) {
+    console.error("Error saving resume builder draft:", error);
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: "Please check your resume details and try again." });
+    }
+    res.status(500).json({ message: "Failed to save resume builder draft" });
+  }
+});
 
 app.get("/resumes", authMiddleware, async (req, res) => {
 

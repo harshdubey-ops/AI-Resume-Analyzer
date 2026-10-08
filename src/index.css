@@ -116,3 +116,92 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+.resume-modern .resume-heading {
+  border-color: #0284c7;
+}
+
+.resume-modern .resume-section h3 {
+  color: #0369a1;
+}
+
+.resume-classic .resume-heading {
+  border-color: #334155;
+  text-align: center;
+}
+
+.resume-classic .resume-contact {
+  justify-content: center;
+}
+
+.resume-classic .resume-section h3 {
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 0.35rem;
+}
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 0;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body {
+    color: #1e293b !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .resume-print-target,
+  .resume-print-target * {
+    visibility: visible !important;
+  }
+
+  .resume-preview-panel {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  .resume-preview-panel > div:first-child,
+  .resume-preview-panel > div:last-child {
+    display: contents;
+  }
+
+  .resume-print-target {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+
+  .resume-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    color: #1e293b !important;
+  }
+
+  .resume-section,
+  .resume-entry {
+    break-inside: avoid;
+  }
+}

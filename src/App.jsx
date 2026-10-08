@@ -6,6 +6,7 @@ import Analysis from "./pages/Analysis";
 import ResumeHistory from "./pages/ResumeHistory";
 import JobMatch from "./pages/JobMatch";
 import JobMatchHistory from "./pages/JobMatchHistory";
+import ResumeBuilder from "./pages/ResumeBuilder";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ProtectedRoute from "./ProtectedRoute";
@@ -54,6 +55,14 @@ function App() {
           element={
             <ProtectedRoute>
               <JobMatchHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resume-builder"
+          element={
+            <ProtectedRoute>
+              <ResumeBuilder />
             </ProtectedRoute>
           }
         />
