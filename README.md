@@ -1,6 +1,6 @@
-# AI Resume Analyzer
+# Resumind
 
-An AI-powered Resume Analyzer built using the MERN stack that helps users analyze their resumes, evaluate ATS compatibility, identify skill gaps, and match resumes with job descriptions.
+An AI-powered resume intelligence platform built using the MERN stack that helps users analyze their resumes, evaluate ATS compatibility, identify skill gaps, and match resumes with job descriptions.
 
 ## Features
 

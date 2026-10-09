@@ -59,7 +59,7 @@ const upload = multer({ dest: "uploads/" });
 
 app.get("/", (req, res) => {
   res.json({
-    message: "AI Resume Analyzer Backend is running",
+    message: "Resumind backend is running",
   });
 });
 

@@ -47,7 +47,7 @@ function Home() {
                 </h1>
 
                 <p className="mt-5 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
-                  ResumeAI reviews your resume like a recruiter and an ATS: skills, gaps,
+                  Resumind reviews your resume like a recruiter and an ATS: skills, gaps,
                   strengths, and job-fit — so you know exactly what to improve.
                 </p>
 

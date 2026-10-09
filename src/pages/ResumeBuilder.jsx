@@ -115,9 +115,9 @@ async function createResumeDocument(resume, versionName) {
   addSection("Projects", resume.projects);
 
   return new Document({
-    creator: "AI Resume Analyzer",
+    creator: "Resumind",
     title: `${resume.fullName || "Resume"} - ${versionName || "Resume"}`,
-    description: "Editable resume created with AI Resume Analyzer",
+    description: "Editable resume created with Resumind",
     sections: [{
       properties: {
         page: {
